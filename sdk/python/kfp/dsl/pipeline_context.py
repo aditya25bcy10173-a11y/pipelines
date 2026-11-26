@@ -185,6 +185,7 @@ class Pipeline:
         Returns:
             A unique task name.
         """
+        self._close_conditional_branches_group_if_needed()
         # Sanitizing the task name.
         # Technically this could be delayed to the compilation stage, but string
         # serialization of PipelineChannels make unsanitized names problematic.
@@ -204,6 +205,14 @@ class Pipeline:
             self.groups[-1].tasks.append(task)
 
         return task_name
+
+    def _close_conditional_branches_group_if_needed(self):
+        """Closes an If/Elif branches group when the chain has no Else."""
+        if (
+            isinstance(self.groups[-1], tasks_group.ConditionBranches)
+            and isinstance(self.get_last_tasks_group(), tasks_group.Elif)
+        ):
+            self.pop_tasks_group()
 
     def push_tasks_group(self, group: 'tasks_group.TasksGroup'):
         """Pushes a TasksGroup into the stack.

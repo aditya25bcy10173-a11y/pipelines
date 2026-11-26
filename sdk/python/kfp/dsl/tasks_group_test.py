@@ -90,6 +90,66 @@ class ParallelForTest(unittest.TestCase):
                 )
 
 
+class ConditionalBranchesTest(unittest.TestCase):
+    def test_elif_without_else_closes_conditional_branches_group(self):
+        @dsl.component
+        def produce() -> str:
+            return 'value'
+
+        @dsl.component
+        def consume(value: str):
+            pass
+
+        with pipeline_context.Pipeline('pipeline') as pipeline:
+            source = produce()
+
+            with dsl.If(source.output == 'first'):
+                consume(value=source.output)
+
+            with dsl.Elif(source.output == 'second'):
+                consume(value=source.output)
+
+            outside_task = consume(value=source.output)
+
+        root_group = pipeline.groups[0]
+        self.assertIs(outside_task.parent_task_group, root_group)
+        self.assertIn(outside_task, root_group.tasks)
+
+        branches_group = root_group.groups[0]
+        self.assertIsInstance(
+            branches_group, tasks_group.ConditionBranches
+        )
+        self.assertEqual(len(branches_group.groups), 2)
+
+    def test_elif_with_else_still_closes_conditional_branches_group(self):
+        @dsl.component
+        def produce() -> str:
+            return 'value'
+
+        @dsl.component
+        def consume(value: str):
+            pass
+
+        with pipeline_context.Pipeline('pipeline') as pipeline:
+            source = produce()
+
+            with dsl.If(source.output == 'first'):
+                consume(value=source.output)
+
+            with dsl.Elif(source.output == 'second'):
+                consume(value=source.output)
+
+            with dsl.Else():
+                consume(value=source.output)
+
+            outside_task = consume(value=source.output)
+
+        root_group = pipeline.groups[0]
+        self.assertIs(outside_task.parent_task_group, root_group)
+        self.assertIn(outside_task, root_group.tasks)
+        self.assertEqual(len(root_group.groups[0].groups), 3)
+
+
 class TestConditionDeprecated(unittest.TestCase):
     def test(self):
 

@@ -74,8 +74,9 @@ class TasksGroup:
             raise ValueError('Default pipeline not defined.')
 
         self._make_name_unique()
-
-        pipeline_context.Pipeline.get_default_pipeline().push_tasks_group(self)
+        pipeline = pipeline_context.Pipeline.get_default_pipeline()
+        pipeline._close_conditional_branches_group_if_needed()
+        pipeline.push_tasks_group(self)
         return self
 
     def __exit__(self, *unused_args):
